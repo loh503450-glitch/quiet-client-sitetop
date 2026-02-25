@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiet Client - Database Version</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 30%, rgba(100, 100, 255, 0.15) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(30px);
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(30px);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-admin {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 40px 80px;
+        }
+
+        .hero-logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ffffff;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #9ca3af;
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(50px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 90%;
+            max-width: 420px;
+            position: relative;
+            backdrop-filter: blur(40px);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            color: #9ca3af;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 18px 20px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(30px);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-modal {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(30px);
+        }
+
+        .btn-modal:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-footer {
+            text-align: center;
+            margin-top: 32px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .modal-link {
+            color: #ffffff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .admin-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            color: #ffffff;
+        }
+
+        .users-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(30px);
+        }
+
+        .table-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 150px;
+            gap: 20px;
+            font-weight: 600;
+        }
+
+        .table-row {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 150px;
+            gap: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .status-active {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: #ffffff;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: #ffffff;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">Q</div>
+                Quiet Client DB
+            </div>
+            <div class="nav-right" id="navRight">
+                <button class="btn" onclick="openRegisterModal()">Регистрация</button>
+                <button class="btn" onclick="openLoginModal()">Вход</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="hero-section" id="heroSection">
+        <div class="hero-logo">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" fill="currentColor"/>
+            </svg>
+        </div>
+        
+        <h1 class="hero-title">Quiet Client с База Данных</h1>
+        <p class="hero-subtitle">Полноценная система регистрации с реальной базой данных и админ панелью</p>
+    </main>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel hidden" id="adminPanel">
+        <h2 class="admin-title">Админ Панель</h2>
+        <div class="users-table">
+            <div class="table-header">
+                <div>Пользователь</div>
+                <div>Email</div>
+                <div>Дата регистрации</div>
+                <div>Статус</div>
+                <div>Действия</div>
+            </div>
+            <div id="usersTableBody">
+                <!-- Users will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+            <h2 class="modal-title">Вход</h2>
+            
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <input type="email" class="form-input" placeholder="Email" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="password" class="form-input" placeholder="Пароль" required>
+                </div>
+                
+                <button type="submit" class="btn-modal">Войти</button>
+            </form>
+            
+            <div class="modal-footer">
+                Нет аккаунта? <span class="modal-link" onclick="switchToRegister()">Зарегистрироваться</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('registerModal')">&times;</button>
+            <h2 class="modal-title">Регистрация</h2>
+            
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <input type="text" class="form-input" placeholder="Имя пользователя" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="email" class="form-input" placeholder="Email" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="password" class="form-input" placeholder="Пароль" required>
+                </div>
+                
+                <button type="submit" class="btn-modal">Зарегистрироваться</button>
+            </form>
+            
+            <div class="modal-footer">
+                Уже есть аккаунт? <span class="modal-link" onclick="switchToLogin()">Войти</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration - ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ
+        const SUPABASE_URL = 'https://your-project.supabase.co'
+        const SUPABASE_ANON_KEY = 'your-anon-key'
+        
+        // Инициализация Supabase (пока с тестовыми данными)
+        let supabase = null;
+        
+        // Временная база данных в localStorage для демонстрации
+        let users = JSON.parse(localStorage.getItem('quietUsers') || '[]');
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+        // Modal functions
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('show');
+        }
+
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function switchToRegister() {
+            closeModal('loginModal');
+            openRegisterModal();
+        }
+
+        function switchToLogin() {
+            closeModal('registerModal');
+            openLoginModal();
+        }
+
+        // Registration handler
+        async function handleRegister(event) {
+            event.preventDefault();
+            const inputs = event.target.querySelectorAll('input');
+            const username = inputs[0].value;
+            const email = inputs[1].value;
+            const password = inputs[2].value;
+
+            // Проверка на существующего пользователя
+            const existingUser = users.find(user => user.email === email || user.username === username);
+            if (existingUser) {
+                showError('registerModal', 'Пользователь с таким email или именем уже существует!');
+                return;
+            }
+
+            // Создание нового пользователя
+            const newUser = {
+                id: Date.now(),
+                username: username,
+                email: email,
+                password: password, // В реальном приложении пароль должен быть зашифрован
+                registrationDate: new Date().toISOString(),
+                subscription: 'inactive',
+                role: 'user'
+            };
+
+            users.push(newUser);
+            localStorage.setItem('quietUsers', JSON.stringify(users));
+
+            showSuccess('registerModal', 'Регистрация успешна! Теперь войдите в систему.');
+            
+            setTimeout(() => {
+                closeModal('registerModal');
+                openLoginModal();
+            }, 2000);
+        }
+
+        // Login handler
+        async function handleLogin(event) {
+            event.preventDefault();
+            const inputs = event.target.querySelectorAll('input');
+            const email = inputs[0].value;
+            const password = inputs[1].value;
+
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateNavigation();
+                closeModal('loginModal');
+                
+                if (user.role === 'admin') {
+                    showAdminPanel();
+                }
+            } else {
+                showError('loginModal', 'Неверный email или пароль!');
+            }
+        }
+
+        // Update navigation after login
+        function updateNavigation() {
+            const navRight = document.getElementById('navRight');
+            
+            if (currentUser) {
+                navRight.innerHTML = `
+                    <span style="color: #9ca3af; margin-right: 16px;">Привет, ${currentUser.username}!</span>
+                    ${currentUser.role === 'admin' ? '<button class="btn btn-admin" onclick="toggleAdminPanel()">Админ Панель</button>' : ''}
+                    <button class="btn" onclick="logout()">Выход</button>
+                `;
+            } else {
+                navRight.innerHTML = `
+                    <button class="btn" onclick="openRegisterModal()">Регистрация</button>
+                    <button class="btn" onclick="openLoginModal()">Вход</button>
+                `;
+            }
+        }
+
+        // Show admin panel
+        function showAdminPanel() {
+            document.getElementById('heroSection').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            loadUsers();
+        }
+
+        function toggleAdminPanel() {
+            const heroSection = document.getElementById('heroSection');
+            const adminPanel = document.getElementById('adminPanel');
+            
+            if (adminPanel.classList.contains('hidden')) {
+                heroSection.classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                loadUsers();
+            } else {
+                heroSection.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+            }
+        }
+
+        // Load users in admin panel
+        function loadUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                row.innerHTML = `
+                    <div>${user.username}</div>
+                    <div>${user.email}</div>
+                    <div>${new Date(user.registrationDate).toLocaleDateString()}</div>
+                    <div class="${user.subscription === 'active' ? 'status-active' : 'status-inactive'}">
+                        ${user.subscription === 'active' ? 'Активна' : 'Неактивна'}
+                    </div>
+                    <div>
+                        <button class="btn btn-small" onclick="toggleSubscription(${user.id})">
+                            ${user.subscription === 'active' ? 'Отключить' : 'Активировать'}
+                        </button>
+                    </div>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Toggle user subscription
+        function toggleSubscription(userId) {
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex !== -1) {
+                users[userIndex].subscription = users[userIndex].subscription === 'active' ? 'inactive' : 'active';
+                localStorage.setItem('quietUsers', JSON.stringify(users));
+                loadUsers();
+            }
+        }
+
+        // Logout
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateNavigation();
+            
+            // Hide admin panel if visible
+            document.getElementById('heroSection').classList.remove('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+        }
+
+        // Show error message
+        function showError(modalId, message) {
+            const modal = document.getElementById(modalId);
+            const form = modal.querySelector('form');
+            
+            // Remove existing error
+            const existingError = modal.querySelector('.error-message');
+            if (existingError) existingError.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            form.insertBefore(errorDiv, form.firstChild);
+            
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess(modalId, message) {
+            const modal = document.getElementById(modalId);
+            const form = modal.querySelector('form');
+            
+            // Remove existing messages
+            const existingMessage = modal.querySelector('.success-message, .error-message');
+            if (existingMessage) existingMessage.remove();
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            form.insertBefore(successDiv, form.firstChild);
+        }
+
+        // Initialize app
+        function initApp() {
+            updateNavigation();
+            
+            // Create admin user if doesn't exist
+            if (!users.find(u => u.role === 'admin')) {
+                const adminUser = {
+                    id: 1,
+                    username: 'admin',
+                    email: 'admin@quiet.com',
+                    password: 'admin123',
+                    registrationDate: new Date().toISOString(),
+                    subscription: 'active',
+                    role: 'admin'
+                };
+                users.push(adminUser);
+                localStorage.setItem('quietUsers', JSON.stringify(users));
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // Initialize app on load
+        initApp();
+    </script>
+</body>
+</html>
